@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 var cmd *exec.Cmd
@@ -26,7 +25,10 @@ func main() {
 		for {
 			<-c
 			restart = true
-			cmd.Process.Kill()
+			pgid, err := syscall.Getpgid(cmd.Process.Pid)
+			if err == nil {
+				syscall.Kill(-pgid, syscall.SIGTERM)
+			}
 		}
 	}()
 
@@ -36,6 +38,7 @@ func main() {
 		// Start process
 		args := append([]string{"run"}, os.Args[1:]...)
 		cmd = exec.Command("go", args...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
@@ -48,9 +51,6 @@ func main() {
 			} else {
 				fmt.Print(err)
 			}
-		} else {
-			// Sleep for a short time to avoid "port in use" by slayed processes
-			<-time.After(500 * time.Millisecond)
 		}
 	}
 }
