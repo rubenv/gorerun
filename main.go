@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var cmd *exec.Cmd
@@ -47,6 +48,9 @@ func main() {
 			} else {
 				fmt.Print(err)
 			}
+		} else {
+			// Sleep for a short time to avoid "port in use" by slayed processes
+			<-time.After(500 * time.Millisecond)
 		}
 	}
 }
