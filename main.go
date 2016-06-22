@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,11 @@ var cmd *exec.Cmd
 
 func main() {
 	restart := true
+
+	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	flags.Usage = func() {}
+	pkg := flags.String("pkg", "", "Package to install (speeds up reruns)")
+	flags.Parse(os.Args[1:])
 
 	go func() {
 		c := make(chan os.Signal, 1)
@@ -35,13 +41,24 @@ func main() {
 	for restart {
 		restart = false
 
-		// Start process
-		args := append([]string{"run"}, os.Args[1:]...)
-		cmd = exec.Command("go", args...)
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
+		var err error
+
+		if pkg != nil && *pkg != "" {
+			// Pre-compile package
+			cmd = exec.Command("go", "install", *pkg)
+			err = cmd.Run()
+		}
+
+		if err == nil {
+			// Start process
+			args := append([]string{"run"}, flags.Args()...)
+			fmt.Println(args)
+			cmd = exec.Command("go", args...)
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err = cmd.Run()
+		}
 
 		if !restart && err != nil {
 			if e, ok := err.(*exec.ExitError); ok {
