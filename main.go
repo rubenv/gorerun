@@ -52,7 +52,6 @@ func main() {
 		if err == nil {
 			// Start process
 			args := append([]string{"run"}, flags.Args()...)
-			fmt.Println(args)
 			cmd = exec.Command("go", args...)
 			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			cmd.Stdout = os.Stdout
