@@ -5,11 +5,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -42,6 +44,22 @@ func main() {
 		restart = false
 
 		var err error
+
+		// Check if the entry point exists
+		entry := ""
+		for _, s := range flag.Args() {
+			if strings.HasSuffix(s, ".go") {
+				entry = s
+			}
+		}
+		if entry == "" {
+			err = errors.New("No entry-point specified!")
+		} else {
+			_, err = os.Stat(entry)
+			if err != nil && os.IsNotExist(err) {
+				err = fmt.Errorf("Not found: %s, did you forget to 'go get' the required package?")
+			}
+		}
 
 		if pkg != nil && *pkg != "" {
 			// Pre-compile package
