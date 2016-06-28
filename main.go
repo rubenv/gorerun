@@ -47,7 +47,7 @@ func main() {
 
 		// Check if the entry point exists
 		entry := ""
-		for _, s := range flag.Args() {
+		for _, s := range flags.Args() {
 			if strings.HasSuffix(s, ".go") {
 				entry = s
 			}
@@ -57,7 +57,7 @@ func main() {
 		} else {
 			_, err = os.Stat(entry)
 			if err != nil && os.IsNotExist(err) {
-				err = fmt.Errorf("Not found: %s, did you forget to 'go get' the required package?")
+				err = fmt.Errorf("Not found: %s, did you forget to 'go get' the required package?", entry)
 			}
 		}
 
