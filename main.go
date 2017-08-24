@@ -8,17 +8,20 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 )
 
 var cmd *exec.Cmd
 
 func main() {
-	restart := true
+	killed := false
+	sleep := 10 * time.Second
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	flags.Usage = func() {}
@@ -32,7 +35,7 @@ func main() {
 		// Trigger a restart whenever a SIGHUP comes in
 		for {
 			<-c
-			restart = true
+			killed = true
 			pgid, err := syscall.Getpgid(cmd.Process.Pid)
 			if err == nil {
 				syscall.Kill(-pgid, syscall.SIGTERM)
@@ -40,8 +43,8 @@ func main() {
 		}
 	}()
 
-	for restart {
-		restart = false
+	for {
+		killed = false
 
 		var err error
 
@@ -77,14 +80,18 @@ func main() {
 			err = cmd.Run()
 		}
 
-		if !restart && err != nil {
-			if e, ok := err.(*exec.ExitError); ok {
-				if status, ok := e.Sys().(syscall.WaitStatus); ok {
-					os.Exit(status.ExitStatus())
+		if !killed {
+			if err != nil {
+				if e, ok := err.(*exec.ExitError); ok {
+					if status, ok := e.Sys().(syscall.WaitStatus); ok {
+						log.Printf("Exited with status %d", status.ExitStatus())
+					}
+				} else {
+					log.Println(err)
 				}
-			} else {
-				fmt.Print(err)
 			}
+			log.Println("Sleeping %s before restarting", sleep)
+			time.Sleep(sleep)
 		}
 	}
 }
