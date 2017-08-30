@@ -90,7 +90,7 @@ func main() {
 					log.Println(err)
 				}
 			}
-			log.Println("Sleeping %s before restarting", sleep)
+			log.Printf("Sleeping %s before restarting", sleep)
 			time.Sleep(sleep)
 		}
 	}
